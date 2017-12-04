@@ -11,33 +11,29 @@ packetCount = 0
 lossCount = 0
 
 while True:
-    msg, address = serverSocket.recvfrom(1024)
-    message = msg.decode()
+    msg, address = serverSocket.recvfrom(1024 + 50)
+    toks = msg.split('\t'.encode())
+    cmd = toks[0].decode()
     packetCount += 1
-    if address[1] == 5000 and message == 'fin':
-        print('get\t%s' % message)
-        print('fwd\t%s' % message)
+    if address[1] == 5000 and cmd == 'fin':
+        print('get\t%s' % cmd)
+        print('fwd\t%s' % cmd)
         dest = (address[0], 5002)
-    elif address[1] == 5000 and not headerRecv: 
-        headerRecv = True
+
+    elif address[1] == 5000:
+        temp = [cmd, toks[1].decode()]
         if random.random() < dropRate:
             dropped = True
             lossCount += 1
-            temp = message.split('\t')[0:2]
             temp.extend((lossCount / packetCount, ))
-            print('drop\t%s\t%s,\tloss rate = %.4f' % tuple(temp))
+            print('drop\t%s\t#%s,\tloss rate = %.4f' % tuple(temp))
             continue
-        prevMsg = tuple(message.split('\t')[0:2])
+        print('get\t%s\t#%s' % (temp[0], temp[1]))
+        print('fwd\t%s\t#%s' % (temp[0], temp[1]))
         dest = (address[0], 5002)
-    elif address[1] == 5000 and headerRecv:
-        headerRecv = False
-        if dropped:
-            dropped = False
-            continue
-        print('get\t%s\t#%s' % prevMsg)
-        print('fwd\t%s\t#%s' % prevMsg)
-        dest = (address[0], 5002)
+
     elif address[1] == 5002:
+        message = msg.decode()
         try:
             message = '%s\t#%s' % tuple(message.split('\t'))
         except:
@@ -46,3 +42,4 @@ while True:
         print('fwd\t%s' % message)
         dest = (address[0], 5000)
     serverSocket.sendto(msg, dest)
+

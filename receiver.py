@@ -14,15 +14,15 @@ count = 0
 flushed = False
 while True: 
     try:
-        cmd, _ = receiverSocket.recvfrom(1024)
-        cmd = cmd.decode().split('\t')
-        if cmd[0] == 'fin':
+        cmd, _ = receiverSocket.recvfrom(1024 + 50)
+        cmd = cmd.split('\t'.encode())
+        if cmd[0].decode() == 'fin':
             print('recv\tfin')
             print('send\tfinack')
             receiverSocket.sendto('finack'.encode(), agentAddr)
             break
-        idx = int(cmd[1])
-        data, _ = receiverSocket.recvfrom(1024)
+        idx = int(cmd[1].decode())
+        data = '\t'.encode().join(cmd[2:])
         if (pointer + 1) % BUFFER_SIZE == 0 and count == BUFFER_SIZE:
             # buffer overflow
             flushed = True

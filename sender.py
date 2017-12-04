@@ -10,6 +10,7 @@ args = parser.parse_args()
 THRESHOLD = 16
 TIMEOUT = 1
 pointer = 0
+maxIdx = -1
 winSize = 1
 packetSize = 1024
 senderSocket = socket(AF_INET, SOCK_DGRAM)
@@ -31,10 +32,15 @@ while pointer < len(data):
         if pointer + i >= len(data):
             break
         message = data[pointer + i]
-        print('send\tdata\t#%d,\twinSize = %d' % (pointer + i, winSize))
-        senderSocket.sendto(('data\t%d\t' % (pointer + i)).encode(), agentAddr)
-        senderSocket.sendto(message, agentAddr)
+        if pointer + i <= maxIdx:
+            print('resnd\tdata\t#%d,\twinSize = %d' % (pointer + i, winSize))
+        else:
+            print('send\tdata\t#%d,\twinSize = %d' % (pointer + i, winSize))
+        temp = ('data\t%d\t' % (pointer + i)).encode() + message
+        senderSocket.sendto(('data\t%d\t' % (pointer + i)).encode() + message, agentAddr)
+        #senderSocket.sendto(message, agentAddr)
         sentCount += 1
+    maxIdx = pointer + sentCount - 1
     try:
 #        start = time.time()
         acked = 0
