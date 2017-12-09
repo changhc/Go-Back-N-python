@@ -1,28 +1,44 @@
 import time
+import pickle
+import argparse
 from socket import *
 
-BUFFER_SIZE = 5
+parser = argparse.ArgumentParser()
+parser.add_argument('output_name')
+args = parser.parse_args()
+
+with open('receiver.conf') as f:
+    addr = (f.readline().strip().split('=')[1],
+            int(f.readline().strip().split('=')[1]))
+    BUFFER_SIZE = int(f.readline().strip().split('=')[1])
 pointer = -1
 receiverSocket = socket(AF_INET, SOCK_DGRAM)
-#senderSocket.settimeout(1)
-receiverSocket.bind(('', 5002))
-agentAddr = ('127.0.0.1', 5001)
-outputFile = open('output', 'wb')
+receiverSocket.bind(addr)
+outputFile = None
 
 collected = [None] * BUFFER_SIZE
 count = 0
 flushed = False
 while True: 
     try:
-        cmd, _ = receiverSocket.recvfrom(1024 + 50)
-        cmd = cmd.split('\t'.encode())
-        if cmd[0].decode() == 'fin':
+        pkt, agentAddr = receiverSocket.recvfrom(1024 + 100)
+        pkt = pickle.loads(pkt)
+        cmd = pkt[2]
+        if not outputFile:
+            ext = cmd[3].split('.')
+            if len(ext) == 1:
+                ext = ''
+            else:
+                ext = '.' + ext[-1]
+            outputFile = open('%s%s' % (args.output_name, ext), 'wb')
+        if cmd[0] == 'fin':
             print('recv\tfin')
             print('send\tfinack')
-            receiverSocket.sendto('finack'.encode(), agentAddr)
+            msg = [addr, pkt[0], ['finack']]
+            receiverSocket.sendto(pickle.dumps(msg), agentAddr)
             break
-        idx = int(cmd[1].decode())
-        data = '\t'.encode().join(cmd[2:])
+        idx = int(cmd[1])
+        data = cmd[2]
         if (pointer + 1) % BUFFER_SIZE == 0 and count == BUFFER_SIZE:
             # buffer overflow
             flushed = True
@@ -36,13 +52,13 @@ while True:
             count += 1
             collected[pointer % BUFFER_SIZE] = data
             print('recv\tdata\t#%d' % pointer)
-        message = 'ack\t%d' % pointer
+        message = [addr, pkt[0], ['ack', pointer]]
         print('send\tack\t#%d' % pointer)
         if count == BUFFER_SIZE and flushed:
             flushed = False
             print('flush')
             count = 0
-        receiverSocket.sendto(message.encode(), agentAddr)
+        receiverSocket.sendto(pickle.dumps(message), agentAddr)
     except timeout:
         print('REQUEST TIMED OUT')
 
