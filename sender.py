@@ -22,8 +22,9 @@ maxIdx = -1
 winSize = 1
 packetSize = 1024
 senderSocket = socket(AF_INET, SOCK_DGRAM)
-senderSocket.settimeout(TIMEOUT)
+senderSocket.settimeout(0.001) # small unit
 senderSocket.bind(addr)
+startTime = time.time()
 
 with open(args.input_name, 'rb') as f:
     data = []
@@ -47,25 +48,33 @@ while pointer < len(data):
         temp = [addr, targetAddr, ['data', pointer + i, message, args.input_name]]
         senderSocket.sendto(pickle.dumps(temp), agentAddr)
         sentCount += 1
+        if i == 0:
+            startTime = time.time()
     maxIdx = pointer + sentCount - 1
-    try:
-        acked = 0
-        for i in range(sentCount):
+
+    acked = 0
+    while True:
+        try:
             res, server = senderSocket.recvfrom(packetSize)
             res = pickle.loads(res)
             idx = res[2][1]
             print('recv\t%s\t#%d' % (res[2][0], idx))
             if pointer == idx:
+                startTime = time.time()
                 pointer += 1
                 acked += 1
-        if acked == winSize and winSize < THRESHOLD:
-            winSize *= 2
-        elif acked == winSize:
-            winSize += 1
-    except timeout:
-        THRESHOLD = max(math.floor(winSize / 2), 1)
-        winSize = 1
-        print('time\tout,\t \tthreshold = %d' % THRESHOLD)
+        except timeout:
+            if time.time() - startTime > TIMEOUT and acked != sentCount:
+                THRESHOLD = max(math.floor(winSize / 2), 1)
+                winSize = 1
+                print('time\tout,\t \tthreshold = %d' % THRESHOLD)
+                break
+            elif time.time() - startTime > TIMEOUT:
+                if acked == winSize and winSize < THRESHOLD:
+                    winSize *= 2
+                elif acked == winSize:
+                    winSize += 1
+                break
 
 while True:
     msg = [addr, targetAddr, ['fin']]
@@ -77,4 +86,4 @@ while True:
         break
     except timeout:
         print('time\tout')
-
+senderSocket.close()

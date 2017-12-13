@@ -67,3 +67,5 @@ for item in collected:
         outputFile.write(item)
 print('flush')
 outputFile.close()
+receiverSocket.close()
+
