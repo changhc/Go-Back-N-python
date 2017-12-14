@@ -4,7 +4,7 @@ import argparse
 from socket import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('output_name')
+parser.add_argument('output_name', nargs='?', default='result')
 args = parser.parse_args()
 
 with open('receiver.conf') as f:
