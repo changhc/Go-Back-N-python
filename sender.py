@@ -69,7 +69,7 @@ while pointer < len(data):
                 winSize = 1
                 print('time\tout,\t \tthreshold = %d' % THRESHOLD)
                 break
-            elif time.time() - startTime > TIMEOUT:
+            elif time.time() - startTime > TIMEOUT: # all acked
                 if acked == winSize and winSize < THRESHOLD:
                     winSize *= 2
                 elif acked == winSize:

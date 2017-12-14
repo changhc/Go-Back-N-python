@@ -31,7 +31,10 @@ while True:
                 temp.extend((lossCount / packetCount, ))
                 print('drop\t%s\t#%s,\tloss rate = %.4f' % tuple(temp))
                 continue
-        print('fwd\t%s\t#%s' % (temp[0], temp[1]))
+            temp.extend((lossCount / packetCount, ))
+            print('fwd\t%s\t#%s,\tloss rate = %.4f' % tuple(temp))
+        else:
+            print('fwd\t%s\t#%s' % (temp[0], temp[1]))
 
     serverSocket.sendto(msg, dest)
 
